@@ -1,11 +1,4 @@
-# Get absolute path of the current script
-declare script_file="$(python -c "import os; print(os.path.realpath('$0'))")"
-declare script_dir="$(dirname ${script_file})"
-
-echo "This script is running from $script_dir"
-
 # Declare Variables for testing
-
 declare vm_name="WordpressServer"
 
 declare vms_folder="/Users/danielelisi/VirtualBox VMs"
