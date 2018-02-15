@@ -1,9 +1,13 @@
+# Get absolute path of the current script
+declare script_file="$(python -c "import os; print(os.path.realpath('$0'))")"
+# Get the absolute path of the script enclosing directory
+declare script_dir="$(dirname ${script_file})"
+
 # Declare Variables for testing
 declare vm_name="WordpressServer"
 
 declare vms_folder="/Users/danielelisi/VirtualBox VMs"
 declare size_in_mb=10000
-declare iso_file_path="/Users/danielelisi/Documents/centos_server.iso"
 declare memory_mb=1280
 
 # Create VM
@@ -21,9 +25,27 @@ vboxmanage createhd --filename "${vbox_directory}/${vm_name}.vdi" --size $size_i
 vboxmanage storagectl $vm_name --name SATA --add sata --bootable on
 vboxmanage storagectl $vm_name --name IDE --add ide --bootable on
 
-vboxmanage storageattach $vm_name --storagectl IDE --port 0 --device 0 --type dvddrive --medium $iso_file_path
-vboxmanage storageattach $vm_name --storagectl IDE --port 1 --device 0 --type dvddrive --medium "/Applications/VirtualBox.app/Contents/MacOS/VBoxGuestAdditions.iso"
-vboxmanage storageattach $vm_name --storagectl SATA --port 0 --device 0 --type hdd --medium "${vbox_directory}/${vm_name}.vdi" --nonrotational on
+vboxmanage storageattach $vm_name \
+            --storagectl IDE \
+            --port 0 \
+            --device 0 \
+            --type dvddrive \
+            --medium "${script_dir}/../../isos/centos_server.iso"
+
+vboxmanage storageattach $vm_name \
+            --storagectl IDE \
+            --port 1 \
+            --device 0 \
+            --type dvddrive \
+            --medium "/Applications/VirtualBox.app/Contents/MacOS/VBoxGuestAdditions.iso"
+
+vboxmanage storageattach $vm_name \
+            --storagectl SATA \
+            --port 0 \
+            --device 0 \
+            --type hdd \
+            --medium "${vbox_directory}/${vm_name}.vdi" \
+            --nonrotational on
 
 # Configure VM
 vboxmanage modifyvm $vm_name\
