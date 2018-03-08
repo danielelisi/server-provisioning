@@ -13,9 +13,9 @@ done
 # Copy files to home folder first then move to nginx folder using sudo
 scp -r ${script_dir}/kickstart pxe:~
 scp -r ${script_dir}/setup pxe:~
-ssh pxe 'sudo mv ~/kickstart/wp_ks.cfg /usr/share/nginx/html/'
-ssh pxe 'sudo rm -r ~/kickstart'
-ssh pxe 'sudo mv ~/setup /usr/share/nginx/html/'
+ssh pxe 'sudo mv -f ~/kickstart/wp_ks.cfg /usr/share/nginx/html/'
+ssh pxe 'sudo rm -rf ~/kickstart'
+ssh pxe 'sudo mv -f ~/setup /usr/share/nginx/html/setup'
 ssh pxe 'sudo chown nginx:wheel /usr/share/nginx/html/wp_ks.cfg'
 ssh pxe 'sudo chmod ugo+r /usr/share/nginx/html/wp_ks.cfg'
 ssh pxe 'chmod ugo+rx /usr/share/nginx/html/setup'

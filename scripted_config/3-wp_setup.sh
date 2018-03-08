@@ -38,6 +38,7 @@ mysql -u root < "${script_dir}/config/mariadb_security_config.sql"
 # PHP Config
 yum -y -d1 install php php-mysql php-fpm
 
+# I decided to use `sed` because copying these files using `cp` would not work
 sed -i -r 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/' /etc/php.ini
 sed -i -r 's_listen = 127.0.0.1:9000_listen = /var/run/php-fpm/php-fpm.sock_' /etc/php-fpm.d/www.conf
 sed -i -r 's_;listen.owner = nobody_listen.owner = nobody_' /etc/php-fpm.d/www.conf
@@ -62,11 +63,11 @@ mysql -u root < "${script_dir}/config/wp_mariadb_config.sql"
 
 # Wordpress Configuration
 
-wget -P "${script_dir}" http://wordpress.org/latest.tar.gz &> /dev/null
-tar xzvf latest.tar.gz &> /dev/null
+wget -P "${script_dir}" http://wordpress.org/latest.tar.gz
+tar xzf latest.tar.gz
 /bin/cp "${script_dir}/config/wp-config.php" "${script_dir}/wordpress/wp-config.php"
 
-rsync -avP "${script_dir}/wordpress/" /usr/share/nginx/html/ &> /dev/null
+rsync -aP "${script_dir}/wordpress/" /usr/share/nginx/html/ &> /dev/null
 mkdir /usr/share/nginx/html/wp-content/uploads
 chown -R admin:nginx /usr/share/nginx/html/*
 
