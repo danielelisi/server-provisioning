@@ -1,0 +1,3 @@
+output-virtualbox-iso/
+centos_base.box
+packer_cache

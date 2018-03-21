@@ -1,0 +1,29 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+  #General configuration
+  config.ssh. # put ssh items here
+  
+  #Specifiy the base box here
+  config.vm.box = 
+
+  #VM specific configuration
+  #see : https://www.vagrantup.com/docs/multi-machine/
+  config.vm.define "machine_name" do |machine_name|
+    machine_name.vm.hostname = "example.host.name"
+    machine_name.vm.network "forwarded_port", guest: 443, host: 50443
+    #other machine configuration items go here
+    machine_name.vm.provider "virtualbox" do |vb|
+      vb.linked_clone = true
+      #all other provider configuration items go here
+    end
+  end
+
+  #General provisioning Configuration 
+  config.vm.provision "shell" do |shell|
+    #path if relative is relative to the Vagrantfile
+    shell.path = "$path_to_script"
+  end
+end
