@@ -4,26 +4,31 @@
 Vagrant.configure("2") do |config|
 
   #General configuration
-  config.ssh. # put ssh items here
-  
+  config.ssh.username = 'admin'
+  config.ssh.private_key_path = './acit_4640_base/acit_admin_id_rsa'
+
   #Specifiy the base box here
-  config.vm.box = 
+  config.vm.box = 'centos_base'
 
   #VM specific configuration
   #see : https://www.vagrantup.com/docs/multi-machine/
-  config.vm.define "machine_name" do |machine_name|
-    machine_name.vm.hostname = "example.host.name"
-    machine_name.vm.network "forwarded_port", guest: 443, host: 50443
+  config.vm.define "wp_vagrant" do |wp_vagrant|
+    wp_vagrant.vm.hostname = "wp.host.name"
+    wp_vagrant.vm.network "forwarded_port", guest: 443, host: 50443
+    wp_vagrant.vm.network "forwarded_port", guest: 80, host: 50080
     #other machine configuration items go here
-    machine_name.vm.provider "virtualbox" do |vb|
+    wp_vagrant.vm.provider "virtualbox" do |vb|
+      vb.name = "wp_server_vagrant"
       vb.linked_clone = true
+      vb.gui = true
+
       #all other provider configuration items go here
     end
   end
 
+  config.vm.provision "file", source: "./wp_setup.sh", destination: "/home/admin/wp_setup.sh"
+  config.vm.provision "file", source: "./config", destination: "/home/admin/config"
+
   #General provisioning Configuration 
-  config.vm.provision "shell" do |shell|
-    #path if relative is relative to the Vagrantfile
-    shell.path = "$path_to_script"
-  end
+  config.vm.provision "shell", inline: "/home/admin/wp_setup.sh"
 end
