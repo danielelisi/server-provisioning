@@ -1,0 +1,35 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+
+  #General configuration
+  config.ssh.username = 'admin'
+  config.ssh.private_key_path = './acit_admin_id_rsa'
+
+  #Specifiy the base box here
+  config.vm.box = 'centos_base'
+
+  #VM specific configuration
+  #see : https://www.vagrantup.com/docs/multi-machine/
+  config.vm.define "wp_vagrant" do |wp_vagrant|
+    wp_vagrant.vm.hostname = "wp.host.name"
+    wp_vagrant.vm.network "forwarded_port", guest: 443, host: 50443
+    wp_vagrant.vm.network "forwarded_port", guest: 80, host: 50080
+    wp_vagrant.vm.network "forwarded_port", guest: 22, host: 50022
+    #other machine configuration items go here
+    wp_vagrant.vm.provider "virtualbox" do |vb|
+      vb.name = "wp_server_vagrant"
+      vb.linked_clone = true
+      vb.gui = false
+
+      #all other provider configuration items go here
+    end
+  end
+
+  #General provisioning Configuration 
+  config.vm.provision "ansible" do |ansible|
+    # playbook path relative to Vagrantfile
+    ansible.playbook = "provisioning/site.yml"
+  end
+end

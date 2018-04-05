@@ -1,0 +1,73 @@
+---
+- hosts: all
+
+  become: yes
+
+  tasks:
+    - name: Install EPEL repo.
+      yum: name=epel-release state=present
+
+    - name: Install NGINX, PHP, MariaDB.
+      yum: name={{ item }} state=present
+      with_items:
+        - nginx
+        - php
+        - php-fpm
+        - mariadb-server
+        - mariadb
+        - php-mysql
+        - rsync
+
+    - name: Start and Enable Services
+      service: name={{ item }} state=started enabled=yes
+      with_items:
+        - nginx
+        - mariadb
+        - php-fpm
+      
+    - name: Allow HTTP Request
+      firewalld: service=http permanent=true state=enabled
+
+    - name: Allow HTTPS Request
+      firewalld: service=https permanent=true state=enabled
+
+    - name: Copy Nginx.conf
+      copy: src=./wp_setup_files/nginx.conf dest=/etc/nginx/nginx.conf force=yes
+
+    - name: Copy php.ini
+      copy: src=./wp_setup_files/php.ini dest=/etc/php.ini force=yes
+
+    - name: Copy www.conf
+      copy: src=./wp_setup_files/www.conf dest=/etc/php-fpm.d/www.conf force=yes
+
+    - name: Copy Mariadb scripts folder
+      copy: src=./wp_setup_files/mariadb_sql dest=/home/admin
+
+    - name: Configure mariadb
+      script: ./wp_setup_files/mariadb_config.sh chdir=/home/admin/mariadb_sql
+
+    - name: Download Wordpress
+      get_url: url=http://wordpress.org/latest.tar.gz dest=/home/admin/wordpress.tar.gz
+
+    - name: Unpack Wordpress Archive
+      unarchive: remote_src=yes src=/home/admin/wordpress.tar.gz dest=/home/admin
+
+    - name: Copy Wordpress to nginx folder
+      command: rsync -avP /home/admin/wordpress/ /usr/share/nginx/html/
+
+    - name: Create Wordpress uploads folder
+      file: path=/usr/share/nginx/html/wp-content/uploads state=directory
+
+    - name: Copy Wordpress Configuration
+      copy: src=./wp_setup_files/wp-config.php dest=/usr/share/nginx/html/
+
+    - name: Set Wordpress Permission
+      file: path=/usr/share/nginx/html/ state=directory recurse=yes mode=0755 owner=admin group=nginx
+
+    - name: Restart Services
+      service: name={{ item }} state=restarted
+      with_items:
+        - nginx
+        - mariadb
+        - php-fpm
+        - firewalld
