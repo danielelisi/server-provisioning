@@ -1,0 +1,15 @@
+---
+- hosts: all
+
+  become: yes
+
+  vars:
+    mariadb_priv_user: root
+    mariadb_priv_user_passwd: P@ssw0rd
+    wordpress_db: wordpress
+    wordpress_db_user: wordpress_user
+    wordpress_db_user_passwd: P@ssw0rd
+  
+  roles:
+    - php
+...

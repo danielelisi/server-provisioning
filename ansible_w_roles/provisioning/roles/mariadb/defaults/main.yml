@@ -1,0 +1,4 @@
+---
+# defaults file for mariadb
+mariadb_priv_user_passwd: P@ssw0rd
+...

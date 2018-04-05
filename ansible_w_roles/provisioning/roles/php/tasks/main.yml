@@ -1,0 +1,19 @@
+---
+# tasks file for php
+- name: Install Php, Php-fpm, php-mysql
+  yum: name={{ item }} state=present
+  with_items:
+    - php
+    - php-fpm
+    - php-mysql
+
+- name: Enable Php-fpm
+  service: name=php-fpm state=started enabled=yes
+
+- name: Copy Php config
+  copy: src={{ item.src }} dest={{ item.dest }} force=yes
+  with_items:
+    - { src: 'php.ini', dest: '/etc/php.ini' }
+    - { src: 'www.conf', dest: '/etc/php-fpm.d/www.conf'}
+  notify:
+    - restart php-fpm
