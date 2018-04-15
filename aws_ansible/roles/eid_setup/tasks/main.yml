@@ -1,0 +1,60 @@
+---
+- name: associate elastic ip
+  ec2_eip: 
+    region: "{{ region }}"
+    in_vpc: true
+    state: present
+    device_id: "{{ ec2_retrieved.instances[0].id }}"
+    reuse_existing_ip_allowed: yes
+  register: eip_var
+  tags:
+    - provision
+  notify:
+    - refresh aws dynamic inventory
+
+- meta: flush_handlers 
+  tags:
+    - provision
+
+- meta: refresh_inventory
+  tags:
+    - provision
+
+- name: output elastic ip data
+  debug: 
+    msg: "{{ eip_var }}"
+  when: eip_var is defined 
+  tags:
+    - debug
+
+- name: output elastic ip id
+  debug: 
+    msg: "{{ eip_var.allocation_id }}"
+  when: eip_var.allocation_id is defined 
+  tags:
+    - debug
+
+- name: output elastic ip public address
+  debug: 
+    msg: "{{ eip_var.public_ip }}"
+  when: eip_var.allocation_id is defined 
+  tags:
+    - debug
+
+- name: Wait until SSH is available on ec2 instance
+  wait_for:
+    host: "{{ eip_var.public_ip  }}"
+    port: 22 
+    delay: 10
+    connect_timeout: 20 
+    timeout: 120
+    state: started
+  tags:
+    - provision
+
+- name: delay after ssh is up so cloud init can complete
+  wait_for:
+    timeout: 10
+  tags:
+    - provision
+...

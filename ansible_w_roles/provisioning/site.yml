@@ -11,5 +11,5 @@
     wordpress_db_user_passwd: P@ssw0rd
   
   roles:
-    - php
+    - wordpress
 ...

@@ -1,0 +1,107 @@
+---
+- name: create vpc
+  ec2_vpc_net:
+    state: present 
+    region: "{{ region }}"
+    cidr_block: "{{ vpc_cidr }}"
+    multi_ok: no
+    name: "{{ vpc_name }}"
+  register: vpc_var
+  tags:
+    - provision
+
+- name: output vpc data
+  debug: 
+    msg: "{{ vpc_var }}"
+  tags:
+    - debug
+
+- name: output vpc id
+  debug: 
+    msg: "{{ vpc_var.vpc.id }}"
+  tags:
+    - debug
+
+- name: create subnet
+  ec2_vpc_subnet:
+    state: present 
+    region: "{{ region }}"
+    cidr: "{{ subnet_cidr }}"
+    vpc_id: "{{ vpc_var.vpc.id }}"
+    tags: 
+      Name: "{{ subnet_name }}"
+  register: subnet_var
+  tags:
+    - provision
+
+- name: output subnet data
+  debug:
+    msg: "{{ subnet_var }}"
+  tags:
+    - debug
+
+- name: output subnet id
+  debug:
+    msg: "{{ subnet_var.subnet.id }}"
+  tags:
+    - debug
+
+- name: add internet gateway to vpc
+  ec2_vpc_igw:
+    region: "{{ region }}"
+    vpc_id: "{{ vpc_var.vpc.id }}"
+    state: present
+  register: igw_var
+  tags:
+    - provision
+
+- name: Tag internet gateway with a name
+  ec2_tag:
+    resource: "{{ igw_var.gateway_id }}"
+    state: present
+    region: "{{ region }}"
+    tags:
+      Name: "{{ igw_name }}"
+  tags:
+    - provision
+
+- name: output igw data
+  debug: 
+    msg: "{{ igw_var }}"
+  tags:
+    - debug
+
+- name: output igw id
+  debug: 
+    msg: "{{ igw_var.gateway_id }}"
+  tags:
+    - debug
+
+- name: create routing table
+  ec2_vpc_route_table:
+    region: "{{ region }}"
+    vpc_id: "{{ vpc_var.vpc.id }}"
+    state: present
+    routes:
+      - dest: "{{ default_cidr }}"
+        gateway_id: "{{ igw_var.gateway_id }}"
+    subnets:
+      -  "{{ subnet_var.subnet.id }}"
+    tags:
+      Name: "{{ rt_name }}"
+  register: rt_var
+  tags:
+    - provision
+
+- name: output routing table data
+  debug: 
+    msg: "{{ rt_var }}"
+  tags:
+    - debug
+
+- name: output routing table id
+  debug: 
+    msg: "{{ rt_var.route_table.id }}"
+  tags:
+    - debug
+...

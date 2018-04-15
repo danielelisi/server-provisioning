@@ -20,16 +20,16 @@
 - name: Download Wordpress
   get_url: 
     url: http://wordpress.org/latest.tar.gz 
-    dest: /home/admin/wordpress.tar.gz
+    dest: /home/centos/wordpress.tar.gz
 
 - name: Unpack Wordpress Archive
   unarchive: 
     remote_src: yes 
-    src: /home/admin/wordpress.tar.gz 
-    dest: /home/admin
+    src: /home/centos/wordpress.tar.gz 
+    dest: /home/centos
 
 - name: Copy Wordpress to nginx folder
-  command: rsync -avP /home/admin/wordpress/ /usr/share/nginx/html/
+  command: rsync -avP /home/centos/wordpress/ /usr/share/nginx/html/
 
 - name: Create Wordpress uploads folder
   file: 
@@ -45,7 +45,7 @@
   file:
     path: /usr/share/nginx/html/
     mode: 0755
-    owner: admin
+    owner: centos
     group: nginx
     state: directory
     recurse: yes

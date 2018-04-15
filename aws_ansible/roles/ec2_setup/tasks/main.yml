@@ -1,0 +1,82 @@
+---
+- name: output user data
+  debug: 
+    msg: "{{ lookup('file','./ec2_userdata.yml') }}" 
+  tags:
+    - debug
+
+- name: create ec2 instance
+  ec2:
+    region: "{{ region }}"
+    image: "{{ ami_id }}"
+    exact_count: 1
+    count_tag:
+      Name: "{{ ec2_instance_name }}"
+    instance_type: "{{ ec2_instance_type }}"
+    key_name: "{{ ssh_key_name }}"
+    group: "{{ sg_name }}"
+    vpc_subnet_id: "{{ subnet_var.subnet.id }}"
+    #be carefull with contents of the user file as its contents are retrieved
+    #and inserted below as a string, be careful with quotes and parenthesis 
+    user_data: "{{ lookup('file','./ec2_userdata.yml') }}" 
+    volumes:
+      - device_name: /dev/sda1
+        delete_on_termination: true
+        volume_size: 8
+    instance_tags:
+      Name: "{{ ec2_instance_name }}"
+      group: "{{ ec2_instance_group }}"
+    wait: yes
+  register: ec2_var
+  tags:
+    - provision 
+
+- name: output ec2 data
+  debug: 
+    msg: "{{ ec2_var }}"
+  when: ec2_var is defined 
+  tags:
+    - debug
+
+- name: output ec2 id
+  debug: 
+    msg: "{{ ec2_var.tagged_instances[0].id }}"
+  when:  ec2_var.tagged_instances[0] is defined
+  tags:
+    - debug
+
+- name: get ec2 instance info
+  ec2_remote_facts:
+    region: "{{ region }}"
+    filters:
+      #Note terminated instances live for half an hour
+      #Don't return them
+      # see http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
+      # for list of avialable filters
+      "tag:Name": "{{ ec2_instance_name }}"
+      instance-state-name: running
+  register: ec2_retrieved
+  tags:
+    - provision
+    - report
+    - cleanup
+    - debug
+
+- name: set ec2 instance facts for roles sharing
+  set_fact:
+    ec2_retrieved: "{{ ec2_retrieved }}"
+
+- name: output retrieved ec2 data
+  debug: 
+    msg: "{{ ec2_retrieved }}"
+  when: ec2_retrieved is defined 
+  tags:
+    - debug
+
+- name: output retrieved ec2 id
+  debug: 
+    msg: "{{ ec2_retrieved.instances[0].id }}"
+  when: ec2_retrieved.instances[0].id is defined 
+  tags:
+    - debug
+...

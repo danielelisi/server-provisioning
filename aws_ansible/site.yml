@@ -1,0 +1,200 @@
+---
+- hosts: localhost
+  connection: local
+  vars:
+    region: us-west-2
+
+    vpc_name: "acit_4640_vpc_3"
+    vpc_cidr: 172.16.0.0/16
+
+    subnet_cidr: 172.16.3.0/24
+    subnet_name: "acit_4640_sn_web_3"
+
+    igw_name: "acit_4640_gw_3"
+
+    rt_name: "acit_4640_web_rt_3"
+    default_cidr: 0.0.0.0/0
+
+    sg_name: "acit_4640_web_sg_3"
+    sg_description: "acit_46460 security group"
+    bcit_cidr: 142.232.0.0/16
+    
+    ami_id: "ami-0ebdd976"
+    ec2_instance_name: "acit_wp3_instance"
+    ec2_instance_type: "t2.micro"
+    ec2_instance_group: "acit"
+    ssh_key_name: "acit_4640_daniele"
+
+  tags:
+    - provision
+
+  roles:
+    - { role: roles/vpc_setup }
+    - { role: roles/sg_setup }
+    - { role: roles/ec2_setup }
+    - { role: roles/eid_setup }
+
+- hosts: tag_group_acit
+  become: yes
+  vars:
+    ansible_ssh_private_key_file: acit_4640_daniele.pem
+    ansible_user: centos
+
+  tags:
+    - configure
+  roles:
+    - wordpress
+
+# CLEANUP PLAY
+- hosts: localhost
+  connection: local
+  vars:
+    region: us-west-2
+
+    vpc_name: "acit_4640_vpc_3"
+    vpc_cidr: 172.16.0.0/16
+
+    subnet_cidr: 172.16.3.0/24
+    subnet_name: "acit_4640_sn_web_3"
+
+    igw_name: "acit_4640_gw_3"
+
+    rt_name: "acit_4640_web_rt_3"
+    default_cidr: 0.0.0.0/0
+
+    sg_name: "acit_4640_web_sg_3"
+    sg_description: "acit_46460 security group"
+    bcit_cidr: 142.232.0.0/16
+    
+    ami_id: "ami-0ebdd976"
+    ec2_instance_name: "acit_wp3_instance"
+    ec2_instance_type: "t2.micro"
+    ec2_instance_group: "acit"
+    ssh_key_name: "acit_4640_daniele"
+
+  tags:
+    - cleanup
+
+  handlers:
+    - name: refresh aws dynamic inventory
+      command: ./inventory/ec2.py --refresh-cache
+  
+    - name: refresh ansible in memory inventory
+      meta: refresh_inventory
+
+  tasks:
+    - name: get ec2 instance info
+      ec2_remote_facts:
+        region: "{{ region }}"
+        filters:
+          #Note terminated instances live for half an hour
+          #Don't return them
+          # see http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html
+          # for list of avialable filters
+          "tag:Name": "{{ ec2_instance_name }}"
+          instance-state-name: running
+      register: ec2_retrieved
+
+    - name: get vpc info
+      ec2_vpc_net_facts:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ vpc_name }}"
+      register: vpc_retrieved
+
+    - name: get subnet info
+      ec2_vpc_subnet_facts:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ subnet_name }}"
+      register: subnet_retrieved
+
+    - name: get route table info
+      ec2_vpc_route_table_facts:
+        region: "{{ region }}"
+        filters:
+          "tag:Name": "{{ rt_name }}"
+      register: rt_retrieved
+
+    - name: get elastic ips 
+      shell: aws ec2 describe-addresses
+      register: awscli_output 
+
+    - name: parse awscli output and create elastic ip variable
+      set_fact:
+        eips_retrieved: "{{ awscli_output.stdout }}"
+      when: awscli_output.stdout is defined
+
+    - name: terminate ec2 instance
+      ec2:
+        region: "{{ region }}"
+        instance_ids: "{{ ec2_retrieved.instances[0].id }}"
+        state: absent
+        wait: yes
+      when:
+        - ec2_retrieved.instances[0] is defined
+        - ec2_retrieved.instances[0].id is defined
+      notify:
+        - refresh aws dynamic inventory
+
+    - meta: flush_handlers 
+
+    - meta: refresh_inventory
+
+    - name: delete security group
+      ec2_group: 
+        region: "{{ region }}"
+        vpc_id: "{{ vpc_retrieved.vpcs[0].id }}"
+        state: absent
+        name: "{{ sg_name }}"
+        description: "{{ sg_description }}"
+        purge_rules: true
+      when:
+        - vpc_retrieved.vpcs[0] is defined
+        - vpc_retrieved.vpcs[0].id is defined
+
+    - name: release elastic ip
+      ec2_eip: 
+        region: "{{ region }}"
+        in_vpc: true
+        state: absent
+        public_ip: "{{ eips_retrieved.Addresses[0].PublicIp }}"
+      when: 
+        - eips_retrieved.Addresses[0] is defined
+        - eips_retrieved.Addresses[0].PublicIp is defined
+
+    - name: delete subnet
+      ec2_vpc_subnet:
+        state: absent
+        region: "{{ region }}"
+        cidr: "{{ subnet_cidr }}"
+        vpc_id: "{{ vpc_retrieved.vpcs[0].id }}"
+        tags: 
+          Name: "{{ subnet_name }}"
+      when: subnet_retrieved.subnets[0] is defined
+
+    - name: delete internet gateway
+      ec2_vpc_igw:
+        region: "{{ region }}"
+        vpc_id: "{{ vpc_retrieved.vpcs[0].id  }}"
+        state: absent
+      when: vpc_retrieved.vpcs[0] is defined
+
+    - name: delete routing table
+      ec2_vpc_route_table:
+        region: "{{ region }}"
+        vpc_id: "{{ vpc_retrieved.vpcs[0].id  }}"
+        state: absent
+        route_table_id: "{{ rt_retrieved.route_tables[0].id }}"
+      when: rt_retrieved.route_tables[0] is defined
+
+    - name: delete vpc
+      ec2_vpc:
+        state: absent
+        region: "{{ region }}"
+        cidr_block: "{{ vpc_cidr }}"
+        vpc_id: "{{ vpc_retrieved.vpcs[0].id  }}"
+        resource_tags: "{}"
+        wait: yes
+      when: vpc_retrieved.vpcs[0] is defined
+...

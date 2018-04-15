@@ -1,0 +1,40 @@
+---
+- name: create security group
+  ec2_group: 
+    region: "{{ region }}"
+    vpc_id: "{{ vpc_var.vpc.id }}"
+    state: present
+    name: "{{ sg_name }}"
+    description: "{{ sg_description }}"
+    purge_rules: true
+    rules:
+      - proto: tcp 
+        from_port: 22 # beginning of port range
+        to_port: 22   # end of port range
+        cidr_ip: "{{ bcit_cidr }}"
+      - proto: tcp 
+        from_port: 80
+        to_port: 80
+        cidr_ip: "{{ bcit_cidr }}"
+      - proto: tcp 
+        from_port: 443
+        to_port: 443
+        cidr_ip: "{{ bcit_cidr }}"
+    purge_rules_egress: true
+    rules_egress:
+  register: sg_var
+  tags:
+    - provision
+
+- name: output security group data
+  debug: 
+    msg: "{{ sg_var }}"
+  tags:
+    - debug
+
+- name: output security group id
+  debug: 
+    msg: "{{ sg_var.group_id }}"
+  tags:
+    - debug
+...

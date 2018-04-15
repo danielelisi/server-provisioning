@@ -1,0 +1,6 @@
+---
+- name: refresh aws dynamic inventory
+  command: ./inventory/ec2.py --refresh-cache
+
+- name: refresh ansible in memory inventory
+  meta: refresh_inventory

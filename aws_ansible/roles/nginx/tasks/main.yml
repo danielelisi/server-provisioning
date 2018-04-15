@@ -1,0 +1,27 @@
+---
+# tasks file for nginx
+- name: Install EPEL repo.
+  yum: name=epel-release state=present
+
+- name: Install Nginx
+  yum: name=nginx state=present
+
+- name: Enable Nginx
+  service: name=nginx state=started enabled=yes
+
+- name: Install firewalld
+  yum: name=firewalld state=present
+
+- name: Enable firewalld
+  service: name=firewalld state=started enabled=yes
+
+- name: Copy Nginx config
+  copy: src=nginx.conf dest=/etc/nginx/nginx.conf force=yes
+  notify:
+    - restart nginx
+
+- name: Open Http and Https ports
+  firewalld: service={{ item }} permanent=true state=enabled immediate=yes
+  with_items:
+    - http
+    - https
