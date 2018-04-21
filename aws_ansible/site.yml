@@ -23,7 +23,7 @@
     ec2_instance_name: "acit_wp3_instance"
     ec2_instance_type: "t2.micro"
     ec2_instance_group: "acit"
-    ssh_key_name: "acit_4640_daniele"
+    ssh_key_name: $aws-ssh-key-name
 
   tags:
     - provision
@@ -37,7 +37,7 @@
 - hosts: tag_group_acit
   become: yes
   vars:
-    ansible_ssh_private_key_file: acit_4640_daniele.pem
+    ansible_ssh_private_key_file: $ssh-key-path
     ansible_user: centos
 
   tags:

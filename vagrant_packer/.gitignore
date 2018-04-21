@@ -2,3 +2,5 @@ output-virtualbox-iso/
 centos_base.box
 packer_cache
 .vagrant
+acit_4640_base/acit_admin_id_rsa
+acit_4640_base/acit_admin_id_rsa.pub
